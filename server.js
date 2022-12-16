@@ -1,21 +1,61 @@
+// TODO
 import express from "express";
+import morgan from "morgan";
+import cors from "cors";
+import apiRouter from "./routes";
 import config from "./config";
-import router from "./routes/index.js";
-// TODO: import router from routes/
+import { errorHandler } from "./middlewares/errorHandler";
 
 const app = express();
 
+
+/**
+ * Parses incoming request body as json if header indicates application/json
+ */
 app.use(express.json());
 
-app.use("/api", router);
+/**
+ * Enables incoming requests from cross origin domains
+ */
+app.use(cors());
 
-// TODO: use the imported router to handle all requests
+/**
+ * Logs incoming request information to the dev console
+ */
+app.use(morgan("dev"));
 
-app.use((err, req, res, next) => {
-  console.error(err);
-  res.json({ name: err.name, msg: err.message });
+/**
+ * Directs incoming static asset requests to the public folder
+ */
+app.use(express.static("public"));
+
+
+/**
+ * Directs all routes starting with /api to the top level api express router
+ */
+app.use("/api", apiRouter);
+
+/**
+ * Sends the react app index.html for page requests
+ * Only needed in production when you are not using the react dev server
+ */
+app.use((req, res, next) => {
+  try {
+    res.sendFile(join(__dirname, "../../public/index.html"));
+  } catch (error) {
+    next(error);
+  }
 });
 
-app.listen(config.port, () => {
-  console.log(`Server listening on port ${config.port}...`);
-});
+/**
+ * Error handler middleware
+ */
+app.use(errorHandler);
+
+/**
+ * Bind the app to a specified port
+ * You can access your app at http://localhost:<port>
+ */
+app.listen(config.port || 5000, () =>
+  console.log(`Server listening on port ${config.port}...`)
+);
